@@ -25,7 +25,7 @@ import {
 import { ui } from 'inquirer'
 
 import { Color, purpleText } from './OutputClass'
-import { toBase64 } from './utis'
+import { toBase64 } from './utils'
 
 export class Listener {
   public on: boolean
@@ -34,14 +34,6 @@ export class Listener {
   public constructor() {
     this.on = false
     this.ui = new ui.BottomBar()
-  }
-
-  private turnListenerOn() {
-    this.on = true
-  }
-
-  private turnListenerOff() {
-    this.on = false
   }
 
   private printCredentialAttributes(credentialRecord: CredentialExchangeRecord) {
@@ -60,6 +52,14 @@ export class Listener {
     await aliceInquirer.acceptCredentialOffer(credentialRecord)
     this.turnListenerOff()
     await aliceInquirer.processAnswer()
+  }
+
+  public turnListenerOn() {
+    this.on = true
+  }
+
+  public turnListenerOff() {
+    this.on = false
   }
 
   public credentialOfferListener(alice: Alice, aliceInquirer: AliceInquirer) {
@@ -96,6 +96,11 @@ export class Listener {
             }else{
               new Error("invalid private key")
             } 
+          }
+          else if(jsonObject.hasOwnProperty("voteMessage")){
+            console.log(jsonObject.voteMessage);
+            /*TODO:: 사용자가 후보를 선택하도록 변경 */
+            alice.sendMessage("12");
           }
         }catch (err){
           console.log(err);

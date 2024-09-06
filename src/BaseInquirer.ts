@@ -7,6 +7,7 @@ export enum ConfirmOptions {
   No = 'no',
 }
 
+
 export class BaseInquirer {
   public optionsInquirer: { type: string; prefix: string; name: string; message: string; choices: string[] }
   public inputInquirer: { type: string; prefix: string; name: string; message: string; choices: string[] }

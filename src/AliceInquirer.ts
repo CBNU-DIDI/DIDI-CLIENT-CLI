@@ -73,8 +73,11 @@ export class AliceInquirer extends BaseInquirer {
 
   public async processAnswer() {
 
+    if (this.listener.on) {
+      console.log(greenText(`처리중...`));
+      return
+    }
     const choice = await this.getPromptChoice()
-    if (this.listener.on) return
 
     switch (choice.options) {
       case PromptOptions.ReceiveConnectionUrl:
@@ -89,7 +92,6 @@ export class AliceInquirer extends BaseInquirer {
         break
         
       case PromptOptions.DeleteCredentials:
-        clear()
         await this.deleteCredentials()
         break
       case PromptOptions.GetPresentationRecord:
@@ -152,18 +154,39 @@ export class AliceInquirer extends BaseInquirer {
   }
 
   public async acceptProofRequest (proofRecord: ProofExchangeRecord) {
-    const requestedCredentials = await this.alice.agent.proofs.selectCredentialsForRequest({
+    const requestedCredentials = await this.alice.agent.proofs.getCredentialsForRequest({
       proofRecordId: proofRecord.id,
     })
-    const requestAtrributes = requestedCredentials.proofFormats.anoncreds?.attributes;
+
+    const selectMap = new Map();
+    const formatMap = new Map();
     
-    console.log(purpleText(`(\n\n제출될 VP : ${JSON.stringify(requestAtrributes?.name.credentialInfo.attributes)}`));
-    const confirm = await prompt([this.inquireConfirmation(Title.ProofRequestTitle)])
-    if (confirm.options === ConfirmOptions.No) {
+    for (const [idx, vc] of requestedCredentials.proofFormats.anoncreds!.attributes['vc'].entries()){
+      selectMap.set(idx,vc.credentialInfo.attributes);
+      formatMap.set(idx,vc);
+    }
+
+    let choiceString = ''; 
+
+    for (const [key, value] of selectMap) {
+      choiceString += `${key+1}: `;  
+      choiceString += `${JSON.stringify(value)}\n`;   
+      choiceString += "============================\n";
+    }
+
+    const confirm = await prompt([this.inquireConfirmation(Title.ProofRequestTitle)]);
+    if(confirm.options === ConfirmOptions.No){
       await this.alice.agent.proofs.declineRequest({ proofRecordId: proofRecord.id })
-    } else if (confirm.options === ConfirmOptions.Yes) {
-      console.log(greenText(`VP 제출중...`))
-      await this.alice.acceptProofRequest(proofRecord,requestedCredentials)
+    }else if(confirm.options === ConfirmOptions.Yes){
+        console.log(purpleText("\n"+choiceString));
+        const confirm = await prompt([this.inquireInput(Title.ProofChoiceTitle)]);
+        const choice = parseInt(confirm.input,10);
+        if (choice && choice <= selectMap.size) {
+          console.log(greenText(`VP 제출중...`))
+          await this.alice.acceptProofRequest(proofRecord,formatMap.get(choice-1));
+        } else{
+          await this.alice.agent.proofs.declineRequest({ proofRecordId: proofRecord.id })
+        }
     }
   }
 
@@ -171,6 +194,7 @@ export class AliceInquirer extends BaseInquirer {
     const title = Title.InvitationTitle
     const getUrl = await prompt([this.inquireInput(title)])
     await this.alice.acceptConnection(getUrl.input)
+    this.listener.turnListenerOn();
     if (!this.alice.connected) return
     this.listener.credentialOfferListener(this.alice, this)
     this.listener.proofRequestListener(this.alice, this)

@@ -18,11 +18,13 @@ export class Alice extends BaseAgent {
   public storage:AskarStorageService<CustomRecord>
   public connected: boolean
   public connectionRecordFaberId?: string
+  public oobId: string
 
   public constructor(port: number, name: string, pw:string) {
     super({ port, name, pw })
     this.connected = false
     this.did="";
+    this.oobId="";
     this.storage = new AskarStorageService
   }
 
@@ -30,13 +32,18 @@ export class Alice extends BaseAgent {
     const alice = new Alice(3006, walletName, walletPw)
     await alice.initializeAgent();
 
+    // console.log(await alice.agent.proofs.getAll());
+    // const requestedCredentials = await alice.agent.proofs.getCredentialsForRequest({
+    //   proofRecordId: 'e1e8454c-65b7-40e3-9f0a-51de8898bef9'
+    // }
+
     const record = await alice.getDids();
     if(record.length===0) {
       alice.did = await alice.createDid();
       console.log(alice.did)
     }
     else{
-      alice.did=record[1]["did"];
+      alice.did=record[0]["did"];
       console.log(alice.did);
     }
   
@@ -125,7 +132,9 @@ export class Alice extends BaseAgent {
   }
 
   private async receiveConnectionRequest(invitationUrl: string) {
-    const { connectionRecord } = await this.agent.oob.receiveInvitationFromUrl(invitationUrl)
+
+    const{ outOfBandRecord,connectionRecord }= await this.agent.oob.receiveInvitationFromUrl(invitationUrl);
+    this.oobId = outOfBandRecord.id;
     if (!connectionRecord) {
       throw new Error(redText(Output.NoConnectionRecordFromOutOfBand))
     }
@@ -166,11 +175,17 @@ export class Alice extends BaseAgent {
 
   public async exit() {
     console.log(Output.Exit)
+    if(this.oobId){
+      await this.agent.oob.deleteById(this.oobId);
+    }
     await this.agent.shutdown()
     process.exit(0)
   }
 
   public async restart() {
+    if(this.oobId){
+      await this.agent.oob.deleteById(this.oobId);
+    }
     await this.agent.shutdown()
   }
 }

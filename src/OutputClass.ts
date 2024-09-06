@@ -20,6 +20,7 @@ export enum Title {
   ConfirmTitle = '\n\nAre you sure?',
   CredentialOfferTitle = '\n\nCredential offer received, do you want to accept it?',
   ProofRequestTitle = '\n\nProof request received, do you want to accept it?',
+  ProofChoiceTitle = '\n\nPlease select a credential(If you want to decline, just press Enter) : \n',
   DeleteCredentialTitle='\n\nPlease attach and include the [id] number you want to delete.',
   InvitationIsExist = '\n\n connection already exists. Do you want a new connection?'
 }
